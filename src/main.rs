@@ -5,6 +5,8 @@ use iced::{
     Row, Rule, Sandbox, Settings, Space, Text, TextInput, Vector,
 };
 
+use clipboard::{ self, ClipboardProvider };
+
 const LIGHT_GRAY: [f32; 3] = [0.1, 0.1, 0.1];
 
 /// Основные вычисления
@@ -30,12 +32,18 @@ fn try_calc_q(dp: &str, ds: &str, A: &str, freq: &str) -> Result<(f32, f32), &'s
     Ok((q_litrmin, q_m3s))
 }
 
+fn copy_to_clibpoard(s: String) {
+    let mut ctx: clipboard::ClipboardContext = clipboard::ClipboardProvider::new().unwrap();
+    ctx.set_contents(s).unwrap();
+}
+
 #[derive(Debug, Clone)]
 enum Message {
     PistonDiameterChanged(String),
     RodDiameterChanged(String),
     AmplitudeChanged(String),
     FrequencyChanged(String),
+    ClipboardCopy(String),
     CalcButtonPressed,
     DoNothing,
 }
@@ -60,6 +68,8 @@ struct MiniApp {
     secondary_result_widget_state: text_input::State,
 
     calc_button_state: button::State,
+    copy_main_result_state: button::State,
+    copy_secondary_result_state: button::State,
 
     last_error: String,
 }
@@ -81,20 +91,22 @@ impl Sandbox for MiniApp {
             frequency: Default::default(),
             frequency_widget_state: Default::default(),
 
-            main_result: Default::default(),
+            main_result: "0".to_string(),
             main_result_widget_state: Default::default(),
 
-            secondary_result: Default::default(),
+            secondary_result: "0".to_string(),
             secondary_result_widget_state: Default::default(),
 
             calc_button_state: Default::default(),
+            copy_main_result_state: Default::default(),
+            copy_secondary_result_state: Default::default(),
 
             last_error: " ".to_string(), // workaround to not hide error_widget on gui
         }
     }
 
     fn title(&self) -> String {
-        "Q app".to_string()
+        "Q calc".to_string()
     }
 
     fn update(&mut self, message: Message) {
@@ -140,6 +152,8 @@ impl Sandbox for MiniApp {
                     }
                 }
             }
+
+            Message::ClipboardCopy(s) => copy_to_clibpoard(s),
 
             Message::DoNothing => (),
         }
@@ -200,7 +214,7 @@ impl Sandbox for MiniApp {
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("Исходные данные").color(Color::from_rgb8(188, 195, 206)))
+                    .push(Text::new("Исходные данные").color(Color::from_rgb8(88, 95, 106)))
                     .push(Space::new(Length::Units(10), Length::Units(1))),
             )
             .push(Space::new(Length::Units(1), Length::Units(5)))
@@ -250,7 +264,7 @@ impl Sandbox for MiniApp {
 
         let main_result_widget = TextInput::new(
             &mut self.main_result_widget_state,
-            "результат",
+            "",
             &self.main_result,
             // use as output only
             |_s| Message::DoNothing,
@@ -258,11 +272,11 @@ impl Sandbox for MiniApp {
         .size(30)
         .padding(0)
         .style(MyTextInputStyle)
-        .width(Length::Units(200));
+        .width(Length::Units(250));
 
         let secondary_result_widget = TextInput::new(
             &mut self.secondary_result_widget_state,
-            "результат",
+            "",
             &self.secondary_result,
             // use as output only
             |_s| Message::DoNothing,
@@ -270,7 +284,19 @@ impl Sandbox for MiniApp {
         .size(30)
         .padding(0)
         .style(MyTextInputStyle)
-        .width(Length::Units(200));
+        .width(Length::Units(250));
+
+        let copy_main_result_widget =
+            button::Button::new(&mut self.copy_main_result_state, Text::new("copy").size(15))
+                .padding(4)
+                .style(MySmallButtonStyle)
+                .on_press(Message::ClipboardCopy(self.main_result.clone()));
+
+        let copy_secondary_result_widget =
+            button::Button::new(&mut self.copy_secondary_result_state, Text::new("copy").size(15))
+                .padding(4)
+                .style(MySmallButtonStyle)
+                .on_press(Message::ClipboardCopy(self.secondary_result.clone()));
 
         let result_layout = Column::new()
             .spacing(10)
@@ -278,10 +304,22 @@ impl Sandbox for MiniApp {
             // .push(Text::new("Результат"))
             // .push(Space::new(Length::Units(1), Length::Units(5)))
             .push(Text::new("Полученный расход Q[л/мин]:").color(LIGHT_GRAY))
-            .push(main_result_widget)
+            .push(
+                Row::new()
+                .spacing(20)
+                .align_items(Align::Center)
+                .push(copy_main_result_widget)
+                .push(main_result_widget)
+            )
             .push(Space::new(Length::Units(1), Length::Units(20)))
             .push(Text::new("Полученный расход Q[м^3/с]:").color(LIGHT_GRAY))
-            .push(secondary_result_widget)
+            .push(
+                Row::new()
+                .spacing(20)
+                .align_items(Align::Center)
+                .push(copy_secondary_result_widget)
+                .push(secondary_result_widget)
+            )
             .push(Space::new(Length::Units(1), Length::Units(40)));
 
         let content = Row::new()
@@ -331,6 +369,38 @@ impl button::StyleSheet for MyButtonStyle {
     }
 }
 
+struct MySmallButtonStyle;
+
+impl button::StyleSheet for MySmallButtonStyle {
+    fn active(&self) -> button::Style {
+        button::Style {
+            // background: Some(Background::Color(Color::from_rgb8(87, 85, 217))),
+            background: Some(Background::Color(Color::WHITE)),
+            shadow_offset: Vector::new(0.0, 0.0),
+            text_color: Color::from_rgb8(87, 85, 217),
+            border_radius: 3.0,
+            border_width: 1.0,
+            border_color: Color::from_rgb8(87, 85, 217)
+        }
+    }
+
+    fn hovered(&self) -> button::Style {
+        button::Style {
+            background: Some(Background::Color(Color::from_rgb8(75, 72, 214))),
+            text_color: Color::WHITE,
+            ..self.active()
+        }
+    }
+
+    fn pressed(&self) -> button::Style {
+        button::Style {
+            background: Some(Background::Color(Color::from_rgb8(58, 56, 210))),
+            text_color: Color::WHITE,
+            ..self.active()
+        }
+    }
+}
+
 struct MyTextInputStyle;
 
 impl text_input::StyleSheet for MyTextInputStyle {
@@ -338,7 +408,7 @@ impl text_input::StyleSheet for MyTextInputStyle {
         text_input::Style {
             background: Background::Color(Color::WHITE),
             border_radius: 0.0,
-            border_width: 1.0,
+            border_width: 0.0,
             border_color: Color::from_rgb(0.7, 0.7, 0.7),
         }
     }

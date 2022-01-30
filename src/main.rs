@@ -1,8 +1,10 @@
+#![windows_subsystem = "windows"]
+
 use std::f32::consts::PI;
 
 use iced::{
-    button, text_input, Align, Background, Color, Column, Container, Font, Length, Row, Rule,
-    Sandbox, Settings, Space, Text, TextInput, Vector,
+    button, text_input, Align, Background, Color, Column, Container, Length, Row, Rule,
+    Sandbox, Settings, Space, Text, TextInput, Vector
 };
 
 use clipboard::{self, ClipboardProvider};
@@ -12,10 +14,10 @@ use serde_derive::{Deserialize, Serialize};
 const LIGHT_GRAY: [f32; 3] = [0.1, 0.1, 0.1];
 
 /// Основные вычисления
-fn try_calc_q(dp: &str, ds: &str, A: &str, freq: &str) -> Result<(f32, f32), &'static str> {
+fn try_calc_q(dp: &str, ds: &str, a: &str, freq: &str) -> Result<(f32, f32), &'static str> {
     let dp: u32 = dp.parse().or(Err("Диаметр поршня: неверное значение"))?;
     let ds: u32 = ds.parse().or(Err("Диаметр штока: неверное значение"))?;
-    let a: u32 = A.parse().or(Err("Амплитуда сигнала: неверное значение"))?;
+    let a: u32 = a.parse().or(Err("Амплитуда сигнала: неверное значение"))?;
     let freq: f32 = freq.parse().or(Err("Частота сигнала: неверное значение"))?;
 
     // Перевод в систему СИ:

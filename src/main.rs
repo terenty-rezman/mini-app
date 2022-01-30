@@ -15,16 +15,16 @@ const LIGHT_GRAY: [f32; 3] = [0.1, 0.1, 0.1];
 
 /// Основные вычисления
 fn try_calc_q(dp: &str, ds: &str, a: &str, freq: &str) -> Result<(f32, f32), &'static str> {
-    let dp: u32 = dp.parse().or(Err("Диаметр поршня: неверное значение"))?;
-    let ds: u32 = ds.parse().or(Err("Диаметр штока: неверное значение"))?;
-    let a: u32 = a.parse().or(Err("Амплитуда сигнала: неверное значение"))?;
+    let dp: f32 = dp.parse().or(Err("Диаметр поршня: неверное значение"))?;
+    let ds: f32 = ds.parse().or(Err("Диаметр штока: неверное значение"))?;
+    let a: f32 = a.parse().or(Err("Амплитуда сигнала: неверное значение"))?;
     let freq: f32 = freq.parse().or(Err("Частота сигнала: неверное значение"))?;
 
     // Перевод в систему СИ:
-    let a_meters = a as f32 / 1000.0; // амплитуда: мм -> м
+    let a_meters = a / 1000.0; // амплитуда: мм -> м
     let freq = 2.0 * PI * freq; // частота: Гц -> рад/c
-    let dp_meters = dp as f32 / 1000.0; // площадь поршня: мм -> м
-    let ds_meters = ds as f32 / 1000.0; // площадь штока: мм -> м
+    let dp_meters = dp / 1000.0; // площадь поршня: мм -> м
+    let ds_meters = ds / 1000.0; // площадь штока: мм -> м
 
     // Площадь рабочей поверхности:
     let s_work_area = (PI / 4.0) * (dp_meters * dp_meters - ds_meters * ds_meters); // в м^2
@@ -125,31 +125,31 @@ impl Sandbox for MiniApp {
     }
 
     fn title(&self) -> String {
-        "Q calc".to_string()
+        "Вычисление расхода".to_string()
     }
 
     fn update(&mut self, message: Message) {
         match message {
             Message::PistonDiameterChanged(s) => {
-                if s.parse::<u32>().is_ok() || s.is_empty() {
+                if s.parse::<f32>().is_ok() || s.is_empty() || s == "."  {
                     self.fields.piston_diameter = s;
                 }
             }
 
             Message::RodDiameterChanged(s) => {
-                if s.parse::<u32>().is_ok() || s.is_empty() {
+                if s.parse::<f32>().is_ok() || s.is_empty() || s == "." {
                     self.fields.rod_diameter = s;
                 }
             }
 
             Message::AmplitudeChanged(s) => {
-                if s.parse::<u32>().is_ok() || s.is_empty() {
+                if s.parse::<f32>().is_ok() || s.is_empty() || s == "." {
                     self.fields.amplitude = s;
                 }
             }
 
             Message::FrequencyChanged(s) => {
-                if s.parse::<f32>().is_ok() || s.is_empty() {
+                if s.parse::<f32>().is_ok() || s.is_empty() || s == "." {
                     self.fields.frequency = s;
                 }
             }
@@ -457,5 +457,8 @@ impl text_input::StyleSheet for MyTextInputStyle {
 }
 
 fn main() {
-    MiniApp::run(Settings::default());
+    let mut settings = Settings::with_flags(());
+    settings.window.size = (930, 450);
+
+    MiniApp::run(settings);
 }

@@ -1,11 +1,13 @@
 use std::f32::consts::PI;
 
 use iced::{
-    button, text_input, Align, Background, Color, Column, Container, Font, Length,
-    Row, Rule, Sandbox, Settings, Space, Text, TextInput, Vector,
+    button, text_input, Align, Background, Color, Column, Container, Font, Length, Row, Rule,
+    Sandbox, Settings, Space, Text, TextInput, Vector,
 };
 
-use clipboard::{ self, ClipboardProvider };
+use clipboard::{self, ClipboardProvider};
+use confy::{self};
+use serde_derive::{Deserialize, Serialize};
 
 const LIGHT_GRAY: [f32; 3] = [0.1, 0.1, 0.1];
 
@@ -49,22 +51,18 @@ enum Message {
 }
 
 struct MiniApp {
-    piston_diameter: String,
+    fields: Values,
+
     piston_widget_state: text_input::State,
 
-    rod_diameter: String,
     rod_widget_state: text_input::State,
 
-    amplitude: String,
     amplitude_widget_state: text_input::State,
 
-    frequency: String,
     frequency_widget_state: text_input::State,
 
-    main_result: String,
     main_result_widget_state: text_input::State,
 
-    secondary_result: String,
     secondary_result_widget_state: text_input::State,
 
     calc_button_state: button::State,
@@ -74,27 +72,46 @@ struct MiniApp {
     last_error: String,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+struct Values {
+    piston_diameter: String,
+    rod_diameter: String,
+    amplitude: String,
+    frequency: String,
+    main_result: String,
+    secondary_result: String,
+}
+
+impl Default for Values {
+    fn default() -> Self {
+        Self {
+            piston_diameter: Default::default(),
+            rod_diameter: Default::default(),
+            amplitude: Default::default(),
+            frequency: Default::default(),
+            main_result: "0".to_string(),
+            secondary_result: "0".to_string()
+        }
+    }
+}
+
 impl Sandbox for MiniApp {
     type Message = Message;
 
     fn new() -> Self {
         MiniApp {
-            piston_diameter: Default::default(),
+            fields: confy::load("q_calc").unwrap_or_default(),
+
             piston_widget_state: Default::default(),
 
-            rod_diameter: Default::default(),
             rod_widget_state: Default::default(),
 
-            amplitude: Default::default(),
             amplitude_widget_state: Default::default(),
 
-            frequency: Default::default(),
             frequency_widget_state: Default::default(),
 
-            main_result: "0".to_string(),
             main_result_widget_state: Default::default(),
 
-            secondary_result: "0".to_string(),
             secondary_result_widget_state: Default::default(),
 
             calc_button_state: Default::default(),
@@ -113,39 +130,41 @@ impl Sandbox for MiniApp {
         match message {
             Message::PistonDiameterChanged(s) => {
                 if s.parse::<u32>().is_ok() || s.is_empty() {
-                    self.piston_diameter = s;
+                    self.fields.piston_diameter = s;
                 }
             }
 
             Message::RodDiameterChanged(s) => {
                 if s.parse::<u32>().is_ok() || s.is_empty() {
-                    self.rod_diameter = s;
+                    self.fields.rod_diameter = s;
                 }
             }
 
             Message::AmplitudeChanged(s) => {
                 if s.parse::<u32>().is_ok() || s.is_empty() {
-                    self.amplitude = s;
+                    self.fields.amplitude = s;
                 }
             }
 
             Message::FrequencyChanged(s) => {
                 if s.parse::<f32>().is_ok() || s.is_empty() {
-                    self.frequency = s;
+                    self.fields.frequency = s;
                 }
             }
 
             Message::CalcButtonPressed => {
                 match try_calc_q(
-                    &self.piston_diameter,
-                    &self.rod_diameter,
-                    &self.amplitude,
-                    &self.frequency,
+                    &self.fields.piston_diameter,
+                    &self.fields.rod_diameter,
+                    &self.fields.amplitude,
+                    &self.fields.frequency,
                 ) {
                     Ok((main_result, secondary_result)) => {
-                        self.main_result = main_result.to_string();
-                        self.secondary_result = secondary_result.to_string();
+                        self.fields.main_result = main_result.to_string();
+                        self.fields.secondary_result = secondary_result.to_string();
                         self.last_error = " ".to_string(); // to not hide error widget on gui
+
+                        confy::store("q_calc", self.fields.clone());
                     }
                     Err(e) => {
                         self.last_error = e.to_string();
@@ -163,7 +182,7 @@ impl Sandbox for MiniApp {
         let piston_widget = TextInput::new(
             &mut self.piston_widget_state,
             "",
-            &self.piston_diameter.to_string(),
+            &self.fields.piston_diameter.to_string(),
             Message::PistonDiameterChanged,
         )
         .padding(5)
@@ -173,7 +192,7 @@ impl Sandbox for MiniApp {
         let rod_widget = TextInput::new(
             &mut self.rod_widget_state,
             "",
-            &self.rod_diameter,
+            &self.fields.rod_diameter,
             Message::RodDiameterChanged,
         )
         .padding(5)
@@ -183,7 +202,7 @@ impl Sandbox for MiniApp {
         let amplitude_widget = TextInput::new(
             &mut self.amplitude_widget_state,
             "",
-            &self.amplitude,
+            &self.fields.amplitude,
             Message::AmplitudeChanged,
         )
         .padding(5)
@@ -193,7 +212,7 @@ impl Sandbox for MiniApp {
         let frequency_widget = TextInput::new(
             &mut self.frequency_widget_state,
             "",
-            &self.frequency,
+            &self.fields.frequency,
             Message::FrequencyChanged,
         )
         .padding(5)
@@ -265,7 +284,7 @@ impl Sandbox for MiniApp {
         let main_result_widget = TextInput::new(
             &mut self.main_result_widget_state,
             "",
-            &self.main_result,
+            &self.fields.main_result,
             // use as output only
             |_s| Message::DoNothing,
         )
@@ -277,7 +296,7 @@ impl Sandbox for MiniApp {
         let secondary_result_widget = TextInput::new(
             &mut self.secondary_result_widget_state,
             "",
-            &self.secondary_result,
+            &self.fields.secondary_result,
             // use as output only
             |_s| Message::DoNothing,
         )
@@ -290,13 +309,15 @@ impl Sandbox for MiniApp {
             button::Button::new(&mut self.copy_main_result_state, Text::new("copy").size(15))
                 .padding(4)
                 .style(MySmallButtonStyle)
-                .on_press(Message::ClipboardCopy(self.main_result.clone()));
+                .on_press(Message::ClipboardCopy(self.fields.main_result.clone()));
 
-        let copy_secondary_result_widget =
-            button::Button::new(&mut self.copy_secondary_result_state, Text::new("copy").size(15))
-                .padding(4)
-                .style(MySmallButtonStyle)
-                .on_press(Message::ClipboardCopy(self.secondary_result.clone()));
+        let copy_secondary_result_widget = button::Button::new(
+            &mut self.copy_secondary_result_state,
+            Text::new("copy").size(15),
+        )
+        .padding(4)
+        .style(MySmallButtonStyle)
+        .on_press(Message::ClipboardCopy(self.fields.secondary_result.clone()));
 
         let result_layout = Column::new()
             .spacing(10)
@@ -306,19 +327,19 @@ impl Sandbox for MiniApp {
             .push(Text::new("Полученный расход Q[л/мин]:").color(LIGHT_GRAY))
             .push(
                 Row::new()
-                .spacing(20)
-                .align_items(Align::Center)
-                .push(copy_main_result_widget)
-                .push(main_result_widget)
+                    .spacing(20)
+                    .align_items(Align::Center)
+                    .push(copy_main_result_widget)
+                    .push(main_result_widget),
             )
             .push(Space::new(Length::Units(1), Length::Units(20)))
             .push(Text::new("Полученный расход Q[м^3/с]:").color(LIGHT_GRAY))
             .push(
                 Row::new()
-                .spacing(20)
-                .align_items(Align::Center)
-                .push(copy_secondary_result_widget)
-                .push(secondary_result_widget)
+                    .spacing(20)
+                    .align_items(Align::Center)
+                    .push(copy_secondary_result_widget)
+                    .push(secondary_result_widget),
             )
             .push(Space::new(Length::Units(1), Length::Units(40)));
 
@@ -380,7 +401,7 @@ impl button::StyleSheet for MySmallButtonStyle {
             text_color: Color::from_rgb8(87, 85, 217),
             border_radius: 3.0,
             border_width: 1.0,
-            border_color: Color::from_rgb8(87, 85, 217)
+            border_color: Color::from_rgb8(87, 85, 217),
         }
     }
 

@@ -935,7 +935,7 @@ dependencies = [
  "bitflags",
  "gfx-auxil",
  "gfx-hal",
- "glow",
+ "glow 0.7.2",
  "js-sys",
  "khronos-egl",
  "libloading 0.6.7",
@@ -1017,6 +1017,18 @@ dependencies = [
 
 [[package]]
 name = "glow"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1625b792e2f9267116dd41eb7d325e0ea2572ceba5069451906745e04f852f33"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "glow"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "072136d2c3783f3a92f131acb227bc806d3886278e2a4dc1e9990ec89ef9e70b"
@@ -1025,6 +1037,18 @@ dependencies = [
  "slotmap",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "glow_glyph"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0510450eb46dd2b8e3284b50b08bfd870f1ef93a55045f54d7376fbcb63b1cb"
+dependencies = [
+ "bytemuck",
+ "glow 0.6.1",
+ "glyph_brush",
+ "log",
 ]
 
 [[package]]
@@ -1149,6 +1173,7 @@ checksum = "05279cf5a83b960a1a01cff455fede8a33df720f3ff4fc9d33be79fcea9d2466"
 dependencies = [
  "iced_core",
  "iced_futures",
+ "iced_glow",
  "iced_web",
  "iced_wgpu",
  "iced_winit",
@@ -1170,6 +1195,22 @@ dependencies = [
  "futures",
  "log",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "iced_glow"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c860ee895d4092101a4e640c4acdf8a3bac04a02b86c20888da038c46a47912"
+dependencies = [
+ "bytemuck",
+ "euclid",
+ "glow 0.6.1",
+ "glow_glyph",
+ "glyph_brush",
+ "iced_graphics",
+ "iced_native",
+ "log",
 ]
 
 [[package]]
@@ -1492,6 +1533,7 @@ dependencies = [
  "clipboard",
  "confy",
  "iced",
+ "iced_glow",
  "serde",
  "serde_derive",
 ]
